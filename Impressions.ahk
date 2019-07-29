@@ -75,22 +75,26 @@ Abduct_Induct(key) {
    ; It starts at the first instance of a new key (:
    static void := ObjBindMethod({}, {})
    Hotkey, Space, % void, On
-   h := TextRender("Press [Space] to repeat pattern!", "y:75% m:1vmin")
+   h := TextRender("Press [Space] to repeat pattern!", "y:75% m:1vmin c:#F9E486")
    KeyWait, Space, D T3
-   if (ErrorLevel)
+   if (ErrorLevel) {
+      Hotkey, Space, % void, Off
       return
+   }
    h.Blank()
-   Hotkey, Space, % void, Off
-   Replay(i+2, step-2)
+   loop % step
+      j := A_Index
+   until !(obj[i+A_Index].1 ~= "i)up")
+   Replay(i+j, step-j)
 
    loop {
-      Hotkey, Space, % void, On
-      h.Render("Press [Space] to repeat pattern!", "y:75% m:1vmin c:pink")
-      KeyWait, Space, D T3
-      if (ErrorLevel)
+      h.Render("Press [Space] to repeat pattern!", "y:75% m:1vmin c:#FFB1AC")
+      KeyWait, Space, D T4.5
+      if (ErrorLevel) {
+         Hotkey, Space, % void, Off
          return
+      }
       h.Blank()
-      Hotkey, Space, % void, Off
       Replay(i, step)
    }
 }
