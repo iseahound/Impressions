@@ -16,12 +16,12 @@ SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
 
-#include <Graphics>
+#include <TextRender>
 
 TickCount := ""
 str := ""
 obj := {}
-g := TextRenderI("Impressions-- by iseahound", "y:82% m:1vmin")
+g := TextRender("Impressions-- by iseahound", "y:82% m:1vmin")
 
 
 F10:: Reload
