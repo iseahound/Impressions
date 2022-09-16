@@ -1,0 +1,2 @@
+; Check stack for lagging down chracters and convert them to normals.
+; best.stack := RegExReplace(best.stack, "{([a-z]+) down}", "$1")

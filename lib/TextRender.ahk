@@ -2,8 +2,8 @@
 ; License:   MIT License
 ; Author:    Edison Hua (iseahound)
 ; Github:    https://github.com/iseahound/TextRender
-; Date:      2021-05-22
-; Version:   1.6.0
+; Date:      2022-03-07
+; Version:   1.7.0
 
 #Requires AutoHotkey v1.1.33+
 #Persistent
@@ -38,7 +38,7 @@ class TextRender {
       this.OnEvent("RightMouseDown", this.EventCopyData)
 
       ; Calls Flush() to allocate the graphics buffer via UpdateMemory().
-      this.flush_pending := true
+      this.flush_pending := True
 
       return this
    }
@@ -53,7 +53,7 @@ class TextRender {
       ObjAddRef(&this)
       TextRender.windows[this.hwnd] := ""
    }
-   
+
    Default() {
       ; Removes all events except for left-click to drag.
       return this
@@ -85,7 +85,7 @@ class TextRender {
    }
 
    AlwaysOnTop() {
-      WinSet, AlwaysOnTop, Toggle, % "ahk_id" this.hwnd
+      WinSet AlwaysOnTop, Toggle, % "ahk_id" this.hwnd
       return this
    }
 
@@ -98,10 +98,8 @@ class TextRender {
    }
 
    Render(terms*) {
-      ; Check the terms to avoid drawing a default square.
-      if (terms[1] != "" || terms[2] != "" || terms[3] != "") {
-         this.Draw(terms*)
-      }
+
+      this.Draw(terms*)
 
       ; Allow Render() to commit only when previous calls to Draw() have occurred.
       if (this.layers.length() > 0) {
@@ -112,12 +110,14 @@ class TextRender {
          ; Ensure that Flush() will be called at the start of a new drawing.
          ; This approach keeps this.layers and the underlying graphics intact,
          ; so that calls to Save() and Screenshot() will not encounter a blank canvas.
-         this.flush_pending := true
+         this.flush_pending := True
+
+         ; Start Timestamp
+         DllCall("QueryPerformanceCounter", "int64*", start:=0)
+         this.t0 := start
 
          ; Create a timer that eventually clears the canvas.
          if (this.t > 0) {
-            DllCall("QueryPerformanceCounter", "int64*", start:=0)
-            this.t0 := start
             ; Create a reference to the object held by a timer.
             blank := ObjBindMethod(this, "blank", this.status) ; Calls Blank()
             SetTimer % blank, % -this.t ; Calls __Delete.
@@ -128,10 +128,8 @@ class TextRender {
    }
 
    RenderOnScreen(terms*) {
-      ; Check the terms to avoid drawing a default square.
-      if (terms[1] != "" || terms[2] != "" || terms[3] != "") {
-         this.Draw(terms*)
-      }
+
+      this.Draw(terms*)
 
       ; Allow Render() to commit when previous Draw() has happened.
       if (this.layers.length() > 0) {
@@ -150,7 +148,7 @@ class TextRender {
             NumPut(       32, bi, 14, "ushort") ; BitCount / BitsPerPixel
          hbm := DllCall("CreateDIBSection", "ptr", hdc, "ptr", &bi, "uint", 0, "ptr*", pBits:=0, "ptr", 0, "uint", 0, "ptr")
          obm := DllCall("SelectObject", "ptr", hdc, "ptr", hbm, "ptr")
-         gfx := DllCall("gdiplus\GdipCreateFromHDC", "ptr", hdc , "ptr*", gfx:=0, "int") ? false : gfx
+         gfx := DllCall("gdiplus\GdipCreateFromHDC", "ptr", hdc , "ptr*", gfx:=0, "int") ? False : gfx
 
          ; Set the origin to this.x and this.y
          DllCall("gdiplus\GdipTranslateWorldTransform", "ptr", gfx, "float", -this.x, "float", -this.y, "int", 0)
@@ -190,10 +188,12 @@ class TextRender {
          this.WindowBottom := this.WindowTop + this.WindowHeight
       }
 
+      ; Start Timestamp
+      DllCall("QueryPerformanceCounter", "int64*", start:=0)
+      this.t0 := start
+
       ; Create a timer that eventually clears the canvas.
       if (this.t > 0) {
-         DllCall("QueryPerformanceCounter", "int64*", start:=0)
-         this.t0 := start
          ; Create a reference to the object held by a timer.
          blank := ObjBindMethod(this, "blank", this.status) ; Calls Blank()
          SetTimer % blank, % -this.t ; Calls __Delete.
@@ -202,7 +202,7 @@ class TextRender {
       ; Ensure that Flush() will be called at the start of a new drawing.
       ; This approach keeps this.layers and the underlying graphics intact,
       ; so that calls to Save() and Screenshot() will not encounter a blank canvas.
-      this.flush_pending := true
+      this.flush_pending := True
       return this
    }
 
@@ -232,10 +232,12 @@ class TextRender {
          if (alpha != 255)
             this.UpdateLayeredWindow()
 
+         ; Start Timestamp
+         DllCall("QueryPerformanceCounter", "int64*", start:=0)
+         this.t0 := start
+
          ; Create a timer that eventually clears the canvas.
          if (this.t > 0) {
-            DllCall("QueryPerformanceCounter", "int64*", start:=0)
-            this.t0 := start
             ; Create a reference to the object held by a timer.
             fade := ObjBindMethod(this, "fade", 0, fade_out, this.status) ; Calls Fade() with no fade_in.
             SetTimer % fade, % -this.t ; Calls __Delete.
@@ -244,7 +246,7 @@ class TextRender {
          ; Ensure that Flush() will be called at the start of a new drawing.
          ; This approach keeps this.layers and the underlying graphics intact,
          ; so that calls to Save() and Screenshot() will not encounter a blank canvas.
-         this.flush_pending := true
+         this.flush_pending := True
          return this
       }
 
@@ -290,7 +292,7 @@ class TextRender {
       }
 
       ; A render to screen operation has occurred.
-      if (this.flush_pending == true)
+      if (this.flush_pending == True)
          this.Flush() ; Clears the graphics buffer.
 
       if (styles[1] = "" && styles[2] = "")
@@ -327,16 +329,15 @@ class TextRender {
       this.UpdateMemory()
 
       if (this.x != "") {
-         ; All colors are the same speed.
          DllCall("gdiplus\GdipSetClipRect", "ptr", this.gfx, "float", this.x, "float", this.y, "float", this.w, "float", this.h, "int", 0)
-         DllCall("gdiplus\GdipGraphicsClear", "ptr", this.gfx, "uint", 0x00FFFFFF)
+         DllCall("gdiplus\GdipGraphicsClear", "ptr", this.gfx, "uint", 0x00FFFFFF) ; All colors are the same speed.
          DllCall("gdiplus\GdipResetClip", "ptr", this.gfx)
          this.CanvasChanged()
       }
 
       this.t := this.x := this.y := this.x2 := this.y2 := this.w := this.h := ""
       this.layers := {}
-      this.flush_pending := false
+      this.flush_pending := False
       return this
    }
 
@@ -346,38 +347,51 @@ class TextRender {
       return this
    }
 
-   Wait(milliseconds := 0) {
+   Wait(wait_time := 0) {
 
-      if (this.t != 0) {
-         ; Prevent the timer from blanking our canvas.
-         this.status := this.status + 1
+      ; Allow the passed wait_time to replace the original duration.
+      wait_time := (wait_time > 0) ? wait_time : this.t
 
+      if (wait_time > 0) {
+         ; Prevents the timer from blanking the canvas.
+         this.UpdateStatus()
+
+         ; Always use QPC over GetTickCount for finer time intervals.
          DllCall("QueryPerformanceFrequency", "int64*", frequency:=0)
-         TextRender_timer:
-         DllCall("QueryPerformanceCounter", "int64*", end:=0)
-         time_elapsed := (end - this.t0) / frequency * 1000
-         remaining_time := this.t - time_elapsed
-         if (remaining_time > 30) {
-            Sleep 10
-            goto TextRender_timer
-         }
-         if (remaining_time > 0)
-            goto TextRender_timer
-      }
 
-      if (milliseconds > 0) {
-         this.Clear() ; Don't clear the canvas if there is no sleep.
-         Sleep % milliseconds
+         loop {
+            DllCall("QueryPerformanceCounter", "int64*", end:=0)
+            elapsed_time := (end - this.t0) / frequency * 1000
+            remaining_time := wait_time - elapsed_time
+            if (remaining_time > 30)
+               Sleep 10
+            if (remaining_time <= 0)
+               break
+         }
       }
 
       return this ; Allow the next render call to update the current window.
    }
 
-   CanvasChanged() {
-      Random rand, -2147483648, 2147483647
-      if rand == this.status
+   Sleep(sleep_time := 0, wait_time := 0) {
+      this.Wait(wait_time)
+      if (sleep_time > 0) {
+         this.UpdateLayeredWindow(0)
+         this.flush_pending := True
+         Sleep sleep_time
+      }
+      return this
+   }
+
+   UpdateStatus() {
+      loop ; Collision free
          Random rand, -2147483648, 2147483647
+      until (rand != this.status)
       this.status := rand
+   }
+
+   CanvasChanged() {
+      this.UpdateStatus()
       if callback := this.events["CanvasChange"]
          return %callback%(this) ; Callbacks have a reference to "this".
    }
@@ -466,11 +480,11 @@ class TextRender {
       _c := this.parse.color(_c, 0xDD212121) ; Default color for background is transparent gray.
 
       ; Parse text color.
-      AlphaCopy := false
+      AlphaCopy := False
       if (c ~= "i)(delete|eraser?|overwrite|AlphaCopy)")
-         AlphaCopy := true, c := 0 ; Eraser brush for text.
+         AlphaCopy := True, c := 0 ; Eraser brush for text.
       if (c ~= "^-") ; Allow negative color values to overwrite alpha.
-         AlphaCopy := true, c := LTrim(c, "-")
+         AlphaCopy := True, c := LTrim(c, "-")
       ; Default color is white text on a dark background or black text on a light background.
       c  := this.parse.color(c, this.parse.grayscale(_c) < 128 ? 0xFFFFFFFF : 0xFF000000)
 
@@ -520,7 +534,7 @@ class TextRender {
 
       ; Get Font size.
       s  := (s ~= valid_positive) ? RegExReplace(s, "\s") : "2.23vh"          ; Default font size is 2.23vh.
-      s  := (s ~= "i)(pt|px)$") ? SubStr(s, 1, -2) : s                            ; Strip spaces, px, and pt.
+      s  := (s ~= "i)(pt|px)$") ? SubStr(s, 1, -2) : s                        ; Strip spaces, px, and pt.
       s  := (s ~= "i)vh$") ? RegExReplace(s, "i)vh$") * vh : s                ; Relative to viewport height.
       s  := (s ~= "i)vw$") ? RegExReplace(s, "i)vw$") * vw : s                ; Relative to viewport width.
       s  := (s ~= "i)(%|vmin)$") ? RegExReplace(s, "i)(%|vmin)$") * vmin : s  ; Relative to viewport minimum.
@@ -542,9 +556,9 @@ class TextRender {
 
       ; Later when text x and w are finalized and it is found that x + width exceeds the screen,
       ; then the _redrawBecauseOfCondensedFont flag is set to true.
-      static _redrawBecauseOfCondensedFont := false
-      if (_redrawBecauseOfCondensedFont == true)
-         f:=z, z:=0, _redrawBecauseOfCondensedFont := false
+      static _redrawBecauseOfCondensedFont := False
+      if (_redrawBecauseOfCondensedFont == True)
+         f:=z, z:=0, _redrawBecauseOfCondensedFont := False
 
       ; Specifies whether to load an external font file, or to use an font already installed on the system.
       if (f ~= "(ttf|otf)$") {
@@ -573,7 +587,7 @@ class TextRender {
 
       DllCall("gdiplus\GdipCreateFont", "ptr", hFamily, "float", s, "int", style, "int", 0, "ptr*", hFont:=0)
       DllCall("gdiplus\GdipCreateStringFormat", "int", n, "int", 0, "ptr*", hFormat:=0)
-      DllCall("gdiplus\GdipSetStringFormatAlign", "ptr", hFormat, "int", j) ; Left = 0, Center = 1, Right = 2
+      DllCall("gdiplus\GdipSetStringFormatAlign", "ptr", hFormat, "int", j)     ; Left = 0, Center = 1, Right = 2
       DllCall("gdiplus\GdipSetStringFormatLineAlign", "ptr", hFormat, "int", v) ; Top = 0, Center = 1, Bottom = 2
 
       ; Use the declared width and height of the text box if given.
@@ -732,7 +746,7 @@ class TextRender {
       ; Re-run: Condense Text using a Condensed Font if simulated text width exceeds screen width.
       if (z) {
          if (width + x > CanvasWidth) {
-            _redrawBecauseOfCondensedFont := true
+            _redrawBecauseOfCondensedFont := True
             return this.DrawOnGraphics(gfx, text, style1, style2, CanvasWidth, CanvasHeight)
          }
       }
@@ -793,7 +807,7 @@ class TextRender {
          offset2 := d[3] + d[6] + Ceil(0.5*o[1])
 
          ; If blur is present, a second canvas must be seperately processed to apply the Gaussian Blur effect.
-         if (true) {
+         if (True) {
             ;DropShadow := Gdip_CreateBitmap(w + 2*offset2, h + 2*offset2)
             ;DropShadow := Gdip_CreateBitmap(A_ScreenWidth, A_ScreenHeight, 0xE200B)
             DllCall("gdiplus\GdipCreateBitmapFromScan0", "int", A_ScreenWidth, "int", A_ScreenHeight
@@ -863,7 +877,7 @@ class TextRender {
             DllCall("gdiplus\GdipSetSmoothingMode", "ptr", DropShadowG, "int", _q)
          }
 
-         if (true) {
+         if (True) {
             DllCall("gdiplus\GdipDeleteGraphics", "ptr", DropShadowG)
             this.filter.GaussianBlur(DropShadow, d[3], d[5])
             DllCall("gdiplus\GdipSetInterpolationMode", "ptr", gfx, "int", 5) ; NearestNeighbor
@@ -1284,7 +1298,7 @@ class TextRender {
             _[6] := ((___ := RegExReplace(d, q1    "(s(ize)?)"          q2, "${value}")) != d) ? ___ : _[6]
             d := _
          }
-         else return {"void":true, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}
+         else return {"void":True, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}
 
          for i, x in d {
             if (i = 4) ; Don't mess with color data.
@@ -1347,11 +1361,11 @@ class TextRender {
             m := _
          } else if (default != "")
             m := {1:default, 2:default, 3:default, 4:default}
-         else return {"void":true, 1:0, 2:0, 3:0, 4:0}
+         else return {"void":True, 1:0, 2:0, 3:0, 4:0}
 
          ; Follow CSS guidelines for margin!
          if (m[2] == "" && m[3] == "" && m[4] == "")
-            m[4] := m[3] := m[2] := m[1], exception := true
+            m[4] := m[3] := m[2] := m[1], exception := True
          if (m[3] == "" && m[4] == "")
             m[4] := m[2], m[3] := m[1]
          if (m[4] == "")
@@ -1397,7 +1411,7 @@ class TextRender {
             _[4] := ((___ := RegExReplace(o, q1    "(t(int)?)"          q2, "${value}")) != o) ? ___ : _[4]
             o := _
          }
-         else return {"void":true, 1:0, 2:0, 3:0, 4:0}
+         else return {"void":True, 1:0, 2:0, 3:0, 4:0}
 
          for i, x in o {
             if (i = 2) || (i = 4) ; Don't mess with color data.
@@ -1563,7 +1577,7 @@ class TextRender {
             for i, layer in this.layers
                this.Draw(layer[1], layer[2], layer[3])
             this.UpdateLayeredWindow()
-            this.flush_pending := true
+            this.flush_pending := True
             ; Create a timer that eventually clears the canvas.
             if (remaining_time > 0) {
                ; Create a reference to the object held by a timer.
@@ -1726,7 +1740,7 @@ class TextRender {
          NumPut(       32, bi, 14, "ushort") ; BitCount / BitsPerPixel
       hbm := DllCall("CreateDIBSection", "ptr", hdc, "ptr", &bi, "uint", 0, "ptr*", pBits:=0, "ptr", 0, "uint", 0, "ptr")
       obm := DllCall("SelectObject", "ptr", hdc, "ptr", hbm, "ptr")
-      gfx := DllCall("gdiplus\GdipCreateFromHDC", "ptr", hdc , "ptr*", gfx:=0, "int") ? false : gfx
+      gfx := DllCall("gdiplus\GdipCreateFromHDC", "ptr", hdc , "ptr*", gfx:=0, "int") ? False : gfx
       DllCall("gdiplus\GdipTranslateWorldTransform", "ptr", gfx, "float", -this.BitmapLeft, "float", -this.BitmapTop, "int", 0)
 
       this.hdc := hdc
@@ -1914,7 +1928,7 @@ class TextRender {
          NumPut(       32, bi, 14, "ushort") ; BitCount / BitsPerPixel
       hbm := DllCall("CreateDIBSection", "ptr", hdc, "ptr", &bi, "uint", 0, "ptr*", pBits:=0, "ptr", 0, "uint", 0, "ptr")
       obm := DllCall("SelectObject", "ptr", hdc, "ptr", hbm, "ptr")
-      gfx := DllCall("gdiplus\GdipCreateFromHDC", "ptr", hdc , "ptr*", gfx:=0, "int") ? false : gfx
+      gfx := DllCall("gdiplus\GdipCreateFromHDC", "ptr", hdc , "ptr*", gfx:=0, "int") ? False : gfx
 
       ; Set the origin to this.x and this.y
       DllCall("gdiplus\GdipTranslateWorldTransform", "ptr", gfx, "float", -this.x, "float", -this.y, "int", 0)
@@ -2102,7 +2116,8 @@ class TextRender {
    }
 
    UpdateLayeredWindow(alpha := 255) {
-      if (this.x == "") {
+      ; If width and height are unset or zero, blank the canvas.
+      if (!this.w || !this.h) {
          return DllCall("UpdateLayeredWindow"
                   ,    "ptr", this.hwnd                ; hWnd
                   ,    "ptr", 0                        ; hdcDst
@@ -2111,7 +2126,7 @@ class TextRender {
                   ,    "ptr", 0                        ; hdcSrc
                   ,    "ptr", 0                        ; *pptSrc
                   ,   "uint", 0                        ; crKey
-                  ,  "uint*", alpha << 16 | 0x01 << 24 ; *pblend
+                  ,  "uint*", 0 << 16 | 0x01 << 24     ; *pblend
                   ,   "uint", 2                        ; dwFlags
                   ,    "int")                          ; Success = 1
       }
@@ -2337,7 +2352,7 @@ class ImageRender extends TextRender {
 
       ; Default width and height.
       if (w == "" && h == "")
-         w := width, h := height, wh_unset := true
+         w := width, h := height, wh_unset := True
       if (w == "")
          w := h * aspect
       if (h == "")
@@ -2347,7 +2362,7 @@ class ImageRender extends TextRender {
       ; If scale is "fit" scale the image so that the greatest edge will fit with empty borders along one edge.
       ; If scale is "harmonic" automatically downscale by the harmonic series. Ex: 50%, 33%, 25%, 20%...
       if (s = "auto" || s = "fill" || s = "fit" || s = "harmonic" || s = "limit") {
-         if (wh_unset == true)
+         if (wh_unset == True)
             w := CanvasWidth, h := CanvasHeight
          s := (s = "auto" || s = "limit")
             ? ((aspect > w / h) ? ((width > w) ? w / width : 1) : ((height > h) ? h / height : 1)) : s
@@ -2377,7 +2392,7 @@ class ImageRender extends TextRender {
       ; LaTex: \frac{1}{\frac{-1}{s}^{Floor(\frac{log(x)}{log(\frac{-1}{s})}) + 1}}
       ; Vertical asymptote at s := -1, which resolves to the empty string "".
       if (s < 0 && s != "") {
-         if (wh_unset == true)
+         if (wh_unset == True)
             w := CanvasWidth, h := CanvasHeight
          s := (s < 0) ? ((aspect > w / h)
             ? (-s) ** ((log(width/w) // log(-1/s)) + 1) : (-s) ** ((log(height/h) // log(-1/s)) + 1)) : s
@@ -2387,7 +2402,7 @@ class ImageRender extends TextRender {
 
       ; Default scale.
       if (s == "") {
-         s := (x == "" && y == "" && wh_unset == true)         ; shrink image if x,y,w,h,s are all unset.
+         s := (x == "" && y == "" && wh_unset == True)         ; shrink image if x,y,w,h,s are all unset.
             ? ((aspect > vr)                                   ; determine whether width or height exceeds screen.
                ? ((width > CanvasWidth) ? CanvasWidth / width : 1)       ; scale will downscale image by its width.
                : ((height > CanvasHeight) ? CanvasHeight / height : 1))  ; scale will downscale image by its height.
